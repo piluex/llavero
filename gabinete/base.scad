@@ -75,7 +75,7 @@ module base()
 {
     difference()
     {
-        roundedRect([base_width, base_depth, base_height], 1,$fn=20);
+        roundedRect([base_width, base_depth, base_height], 1,$fn=50);
         translate([wall_thickness,wall_thickness,wall_thickness])
             cube([interior_width,interior_depth,interior_height],center = false);
         translate([(base_width-usb_width)/2,-safe_distance,wall_thickness])
