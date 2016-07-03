@@ -1,18 +1,19 @@
 //Metric units
 //Definitions
-interior_width = 20;
-interior_depth = 70;
+pi = 3.1415927;
+safe_distance = 0.05;
+interior_width = 19;
+interior_depth = 20*pi; //Why? because I can.
 interior_height = 6;
 wall_thickness = 1.1;
 usb_width = 12.1;
 usb_height = 4.5;
-usb_depth = 5;//This is only used as place_holder for the plug
+usb_depth = 5;//As place_holder, should be > wall_thickness
 push_width = 6;
 push_height = 6;
 push_depth = 3;
 led_diameter = 3;
-led_height = 3;//Only used for placeholder, should be > wall_thickness
-safe_distance = 0.05;
+led_height = 3;//As placeholder, should be > wall_thickness
 push_holder_w = 2.5;
 push_holder_h = 1;
 push_holder_d = 1;
@@ -25,6 +26,10 @@ exterior_height = interior_height + wall_thickness*2;
 base_height = wall_thickness + base_wall_height;
 base_width = exterior_width;
 base_depth = exterior_depth;
+
+led_x_center = (exterior_width/4);
+led_y_center = base_depth-wall_thickness-safe_distance;
+led_z_center = exterior_height/2;
 
 push_x_pos = exterior_width/2 + (exterior_width/2-push_width)/2;
 push_y_pos = base_depth-push_depth+safe_distance;
@@ -81,9 +86,7 @@ module base()
         translate([(base_width-usb_width)/2,-safe_distance,wall_thickness])
             usb_plug_placeholder();
         
-        led_x_center = (exterior_width/4);
-        led_y_center = base_depth-wall_thickness-safe_distance;
-        led_z_center = exterior_height/2;
+
         translate([led_x_center, led_y_center, led_z_center])
             led_placeholder();
         
@@ -94,4 +97,27 @@ module base()
         cube([push_holder_w,push_holder_d,push_holder_h]);
 }
 
+module capote()
+{
+    difference()
+    {
+        roundedRect([base_width, base_depth, base_height], 1,$fn=50);
+        translate([wall_thickness,wall_thickness,wall_thickness])
+            cube([interior_width,interior_depth,interior_height],center = false);
+        translate([(base_width-usb_width)/2,-safe_distance,interior_height-usb_height+wall_thickness])
+            usb_plug_placeholder();
+
+        translate([base_width-led_x_center, led_y_center, led_z_center])
+            led_placeholder();
+        
+        translate([base_width-push_width-push_x_pos, push_y_pos, push_z_pos])
+            push_place_holder();     
+    };
+    translate([((base_width-push_width-push_x_pos)+ (push_width-push_holder_w)/2),push_y_pos-push_holder_d,push_z_pos])
+        cube([push_holder_w,push_holder_d,push_holder_h]);
+}
+
 base();
+
+translate([base_width+pi,0,0])
+    capote();
