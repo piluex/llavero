@@ -24,7 +24,7 @@ Commands:
 command text: 
 "hola"
 possible answer:
-"HOLA HUMANO, YO SOY LLAVERO UN ROBOT DEL PASADO CON EL PROPOSITO DE ENTERRAR TUS SECRETOS EN MI PATIO DE SILICIO."
+"HOLA HUMANO, SOY LLAVERO, UN ROBOT DEL PASADO HECHO PARA ENTERRAR TUS SECRETOS EN MI PATIO DE SILICIO."
 description:
 This is a greeting/status command, use it test communication.
 
@@ -73,6 +73,9 @@ answer:
 "CONFIRMA TU HUMANIDAD"
 *push*
 [list of tags]
+
+6 - Init
+"init"
 
 
 

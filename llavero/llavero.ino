@@ -1,24 +1,25 @@
 /*
- * Copyright (c) 2016 Esteban Torre <esteban.torre@gmail.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this 
- * software and associated documentation files (the "Software"), to deal in the Software 
- * without restriction, including without limitation the rights to use, copy, modify,
- * merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to the following 
- * conditions:
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
- * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
- * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+   Copyright (c) 2016 Esteban Torre <esteban.torre@gmail.com>
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy of this
+   software and associated documentation files (the "Software"), to deal in the Software
+   without restriction, including without limitation the rights to use, copy, modify,
+   merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+   permit persons to whom the Software is furnished to do so, subject to the following
+   conditions:
+   The above copyright notice and this permission notice shall be included in all
+   copies or substantial portions of the Software.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+   INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+   PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+   HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+   OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 #include "Keyboard.h"
 #include "AESLib.h"
+#include <EEPROM.h>
 
 #define BAUD_RATE 9600
 #define LED_PIN 10
@@ -40,17 +41,17 @@ volatile LED_MODE led_status = LED_OFF;
 
 void process_led()
 {
-  switch(led_status)
+  switch (led_status)
   {
     case LED_OFF:
-      digitalWrite(LED_PIN,LOW);
+      digitalWrite(LED_PIN, LOW);
       break;
     case LED_ON:
       digitalWrite(LED_PIN, HIGH);
       break;
     case LED_BLINK:
-      unsigned long t = millis()%(LED_BLINK_INTERVAL*2);
-      if(t<LED_BLINK_INTERVAL)
+      unsigned long t = millis() % (LED_BLINK_INTERVAL * 2);
+      if (t < LED_BLINK_INTERVAL)
         digitalWrite(LED_PIN, LOW);
       else
         digitalWrite(LED_PIN, HIGH);
@@ -61,10 +62,10 @@ void process_led()
 volatile int rand_seed = 1;
 void rand_init()
 {
-  for(int i = 0;i<10; ++i)
+  for (int i = 0; i < 10; ++i)
   {
     int x = analogRead(0);
-    if(x != 0)
+    if (x != 0)
       rand_seed *= x;
     delay(5);
   }
@@ -76,13 +77,13 @@ volatile byte last_push_value = LOW;
 void push_interrupt()
 {
   byte value = digitalRead(PUSH_PIN);
-  if(value != last_push_value)
+  if (value != last_push_value)
   {
     last_push_value = value;
     unsigned long now = millis();
-    if(value == HIGH)
+    if (value == HIGH)
     {
-      if(last_push_high < now)
+      if (last_push_high < now)
       {
         command_confirmation();
       }
@@ -95,16 +96,16 @@ void push_interrupt()
 }
 
 volatile bool secret_set = false;
-uint8_t secret[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-char data[16];
+uint8_t secret[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+char data[17];
 
 byte n_for_hex(char x)
 {
-  if(x >= '0' && x <= '9')
-    return x-'0';
-  else if(x >= 'a' && x <= 'f')
+  if (x >= '0' && x <= '9')
+    return x - '0';
+  else if (x >= 'a' && x <= 'f')
     return x - 'a' + 10;
-  else if(x >= 'A' && x <= 'F')
+  else if (x >= 'A' && x <= 'F')
     return x - 'A' + 10;
   else
     return 16;
@@ -112,7 +113,7 @@ byte n_for_hex(char x)
 
 void wipe_secret()
 {
-  for(int i = 0; i<32; i++)
+  for (int i = 0; i < 32; i++)
   {
     secret[i] = 0;
   }
@@ -121,26 +122,26 @@ void wipe_secret()
 
 bool set_secret(char* buff)
 {
-  if(buff[0] != '0' ||
-     buff[1] != 'x')
+  if (buff[0] != '0' ||
+      buff[1] != 'x')
   {
     return false;
   }
   byte i = 2;
   byte j = 0;
-  while(j<32)
+  while (j < 32)
   {
     byte x = n_for_hex(buff[i]);
-    byte y = n_for_hex(buff[i+1]);
+    byte y = n_for_hex(buff[i + 1]);
     buff[i] = 0; //Wipe key from buffer
-    buff[i+1] = 0;
+    buff[i + 1] = 0;
     i = i + 2;
-    if(x > 15 || y > 15)
+    if (x > 15 || y > 15)
       return false;
     secret[j] = (x << 4) | y;
     j++;
   }
-  if(buff[i] != 0) //Extra data, not good.
+  if (buff[i] != 0) //Extra data, not good.
     return false;
   secret_set = true;
   return true;
@@ -148,34 +149,191 @@ bool set_secret(char* buff)
 
 bool encrypt_data()
 {
-  if(secret_set == false)
-   return false;
-  aes256_enc_single(secret,data);
+  if (secret_set == false)
+    return false;
+  aes256_enc_single(secret, data);
   return true;
 }
 
 bool decrypt_data()
 {
-  if(secret_set == false)
-   return false;
-  aes256_dec_single(secret,data);
+  if (secret_set == false)
+    return false;
+  aes256_dec_single(secret, data);
+  data[16] = 0;
   return true;
+}
+
+struct EEPROM_main
+{
+  unsigned long crc;
+  byte count;
+  unsigned int next;
+};
+
+enum EEPROM_record_flags
+{
+  FREE_RECORD = 0x1,
+  EXTENDED = 0x2
+};
+
+struct EEPROM_record
+{
+  byte flags;
+  char tag[7];
+  byte data1[16];
+  byte data2[16];
+};
+
+EEPROM_main eeprom_main;
+int current_address = sizeof(EEPROM_main);
+EEPROM_record current_record;
+
+//Written by Christopher Andrews.
+//CRC algorithm generated by pycrc, MIT licence ( https://github.com/tpircher/pycrc )
+unsigned long eeprom_crc(int start)
+{
+  const unsigned long crc_table[16] = {
+    0x00000000, 0x1db71064, 0x3b6e20c8, 0x26d930ac,
+    0x76dc4190, 0x6b6b51f4, 0x4db26158, 0x5005713c,
+    0xedb88320, 0xf00f9344, 0xd6d6a3e8, 0xcb61b38c,
+    0x9b64c2b0, 0x86d3d2d4, 0xa00ae278, 0xbdbdf21c
+  };
+  unsigned long crc = ~0L;
+
+  for (int index = start ; index < EEPROM.length()  ; ++index) {
+    crc = crc_table[(crc ^ EEPROM[index]) & 0x0f] ^ (crc >> 4);
+    crc = crc_table[(crc ^ (EEPROM[index] >> 4)) & 0x0f] ^ (crc >> 4);
+    crc = ~crc;
+  }
+  return crc;
+}
+
+void eeprom_init()
+{
+  EEPROM.get(0, eeprom_main);
+  if(eeprom_main.crc == 0 && eeprom_main.count == 0)
+  {
+    //First use of eeprom
+    eeprom_reset();
+  }else
+  {
+    unsigned long crc = eeprom_crc(sizeof(eeprom_main.crc));
+    if(eeprom_main.crc != crc)
+    {
+      bool ack = false;
+      while(ack == false)
+      {
+        Serial.print("FATAL ERROR: EEPROM CRC MISSMATCH!\n");
+        delay(500);
+        if(Serial.available())
+        {
+          ack = true;
+          discard_serial();
+          Serial.print("REPLACING CRC\n");
+          eeprom_main.crc = crc;
+          EEPROM.put(0, eeprom_main);
+        }
+      }
+    }
+  }
+}
+
+void eeprom_reset()
+{
+  eeprom_main.count = 0;
+  eeprom_main.next = sizeof(eeprom_main);
+  EEPROM.put(0,eeprom_main);
+  eeprom_main.crc = eeprom_crc(sizeof(eeprom_main.crc));
+  EEPROM.put(0,eeprom_main);
+}
+
+void eeprom_new()
+{
+  current_address = -1;
+  current_record.flags = 0;
+}
+
+bool eeprom_load_tag(char* tag)
+{
+  int c = 0;
+  bool loaded = false;
+  int ptr = sizeof(eeprom_main);
+  current_record.data1[0] = 0;
+  while(c<eeprom_main.count)
+  {
+    current_record.flags = EEPROM.read(ptr);
+    EEPROM.get(ptr+1,current_record.tag);
+    if(strcmp(tag,current_record.tag)==0)
+    {
+      EEPROM.get(ptr+8, current_record.data1);
+      if(current_record.flags & EXTENDED)
+      {
+        EEPROM.get(ptr+8+16, current_record.data2);
+      }
+      current_address = ptr;
+      return true;
+    }
+    c++;
+    if(current_record.flags & EXTENDED)
+    {
+      ptr = ptr + sizeof(current_record);
+    }else{
+      ptr = ptr + sizeof(current_record)-16;
+    }
+  }
+  return false;
+}
+
+void eeprom_write()
+{
+  if(current_address < 0)
+  {
+    current_address = eeprom_main.next;
+    eeprom_main.next = eeprom_main.next + sizeof(current_record);
+    if((current_record.flags & EXTENDED) == 0)
+      eeprom_main.next = eeprom_main.next - 16;
+    eeprom_main.count = eeprom_main.count + 1;
+  }
+  EEPROM.put(current_address, current_record);
+  eeprom_main.crc = eeprom_crc(sizeof(eeprom_main.crc));
+  EEPROM.put(0, eeprom_main);
+}
+
+void eeprom_print_all_tags()
+{
+  int c = 0;
+  int ptr = sizeof(eeprom_main);
+  while(c < eeprom_main.count)
+  {
+    current_record.flags = EEPROM.read(ptr);
+    EEPROM.get(ptr+1,current_record.tag);
+    Serial.write(current_record.tag);
+    Serial.write('\n');
+    c++;
+    if(current_record.flags & EXTENDED)
+    {
+      ptr = ptr + sizeof(current_record);
+    }else{
+      ptr = ptr + sizeof(current_record)-16;
+    }
+  }
 }
 
 char* error_answer = "ERROR\n";
 
 byte serial_buffer_ptr = 0;
 char serial_last_byte = 0;
-char serial_buffer[SERIAL_BUFFER_LEN+1];
+char serial_buffer[SERIAL_BUFFER_LEN + 1];
 
 void check_serial()
 {
-  while(Serial.available() > 0)
+  while (Serial.available() > 0)
   {
-    if(serial_buffer_ptr < SERIAL_BUFFER_LEN)
+    if (serial_buffer_ptr < SERIAL_BUFFER_LEN)
     {
       serial_last_byte = Serial.read();
-      if(serial_last_byte == LINE_ENDING)
+      if (serial_last_byte == LINE_ENDING)
       {
         serial_buffer[serial_buffer_ptr] = 0;
         discard_serial();
@@ -187,7 +345,7 @@ void check_serial()
         serial_buffer[serial_buffer_ptr] = serial_last_byte;
         serial_buffer_ptr++;
       }
-    }else
+    } else
     {
       serial_buffer_ptr = 0;
       discard_serial();
@@ -198,7 +356,7 @@ void check_serial()
 
 void discard_serial()
 {
-  while(Serial.available())
+  while (Serial.available())
     Serial.read();
 }
 
@@ -214,6 +372,7 @@ enum LLAVERO_COMMAND
   SET_PASSWORD,
   GET_PASSWORD,
   LIST_TAGS,
+  INIT,
   NO_COMMAND // Leave as last ALWAYS
 };
 enum COMMAND_STATUS
@@ -222,45 +381,51 @@ enum COMMAND_STATUS
   WAITING_CONFIRMATION,
   WAITING_ARGUMENTS
 };
-char *command_txt[] = {"hola","secreto","acordate","te acordas?","que sabes?"};
+char *command_txt[] = {"hola", "secreto", "acordate", "te acordas?", "que sabes?", "init"};
 typedef void (* command_func) ();
 command_func command_recv_function[] = {greeting_command_recv, set_secret_command_recv,
-        set_password_command_recv, get_password_command_recv, list_tags_command_recv};
+                                        set_password_command_recv, get_password_command_recv, list_tags_command_recv,
+                                        init_command_recv
+                                       };
 command_func command_arg_function[] = {command_noop, set_secret_command_arg,
-        set_password_command_arg, get_password_command_arg, command_noop};
+                                       set_password_command_arg, get_password_command_arg, command_noop,
+                                       command_noop
+                                      };
 command_func command_confirm_function[] = {command_noop, command_noop,
-        command_noop, get_password_command_confirm, list_tags_command_confirm};
+                                           command_noop, get_password_command_confirm, list_tags_command_confirm,
+                                           init_command_confirm
+                                          };
 
 LLAVERO_COMMAND current_command = NO_COMMAND;
 COMMAND_STATUS command_status = READY;
 byte current_argument = -1;
 byte command_argument_len[MAX_ARGUMENTS];
-char command_argument[MAX_ARGUMENTS][SERIAL_BUFFER_LEN+1];
+char command_argument[MAX_ARGUMENTS][SERIAL_BUFFER_LEN + 1];
 
 bool is_command(char* cmd, char* buff, byte buff_len)
 {
-  if(buff_len <= 0)
+  if (buff_len <= 0)
     return false;
   byte i = 0;
-  while(i<=buff_len)
+  while (i <= buff_len)
   {
     byte x = cmd[i];
     byte y = buff[i];
-    if(x != y || (x == 0 && i != buff_len))
+    if (x != y || (x == 0 && i != buff_len))
     {
       return false;
     }
     i++;
   }
-  i = i -1;
+  i = i - 1;
   return (i == buff_len && cmd[i] == 0);
 }
 
 byte which_command(char* buff, byte buff_len)
 {
-  for(byte i = GREETING; i < NO_COMMAND; i++)
+  for (byte i = GREETING; i < NO_COMMAND; i++)
   {
-    if(is_command(command_txt[i], buff, buff_len))
+    if (is_command(command_txt[i], buff, buff_len))
       return i;
   }
   return NO_COMMAND;
@@ -268,13 +433,14 @@ byte which_command(char* buff, byte buff_len)
 
 bool read_argument()
 {
-  if((current_argument >= 0) && (current_argument <= MAX_ARGUMENTS))
+  if ((current_argument >= 0) && (current_argument <= MAX_ARGUMENTS))
   {
     memcpy(command_argument[current_argument], serial_buffer, SERIAL_BUFFER_LEN);
+    memset(serial_buffer, 0, SERIAL_BUFFER_LEN);
     command_argument[current_argument][SERIAL_BUFFER_LEN] = 0;
     command_argument_len[current_argument] = serial_buffer_ptr;
     return true;
-  }else
+  } else
   {
     return false;
   }
@@ -302,7 +468,7 @@ void command_end()
 
 void command_noop()
 {
-  
+
 }
 
 void greeting_command_recv()
@@ -319,9 +485,9 @@ void set_secret_command_recv()
 
 void set_secret_command_arg()
 {
-  if(current_argument == 0)
+  if (current_argument == 0)
   {
-    if(set_secret(command_argument[current_argument]))
+    if (set_secret(command_argument[current_argument]))
     {
       command_ack();
       command_end();
@@ -330,7 +496,7 @@ void set_secret_command_arg()
     {
       command_error();
     }
-  }else
+  } else
   {
     command_error();
   }
@@ -339,12 +505,38 @@ void set_secret_command_arg()
 void set_password_command_recv()
 {
   Serial.write("DE QUE?\n");
+  eeprom_new();
   wait_argument(0);
 }
 
 void set_password_command_arg()
 {
-  
+  if (current_argument == 0)
+  {
+    int l = strlen(command_argument[0]);
+    if(l > 0 && l < 8)
+    {
+      command_ack();
+      Serial.write("ESCUCHO.\n");
+      wait_argument(1);
+    }else
+    {
+      command_error();
+    }
+  } else if (current_argument == 1)
+  {
+    command_ack();
+    memcpy(data, command_argument[1],16);
+    encrypt_data();
+    current_record.flags = 0;
+    memcpy(current_record.tag, command_argument[0],7);
+    memcpy(current_record.data1,data,16);
+    eeprom_write();
+    command_end();
+  } else
+  {
+    command_error();
+  }
 }
 
 void get_password_command_recv()
@@ -355,11 +547,33 @@ void get_password_command_recv()
 
 void get_password_command_arg()
 {
-  
+  if (current_argument == 0)
+  {
+    int l = strlen(command_argument[current_argument]);
+    if(l>0 && l <8)
+      wait_confirmation();
+    else
+      command_error();
+  } else
+  {
+    command_error();
+  }
 }
 
 void get_password_command_confirm()
 {
+  bool result = eeprom_load_tag(command_argument[0]);
+  if(result)
+  {
+    memcpy(data, current_record.data1,16);
+    decrypt_data();
+    Keyboard.print(data);
+    memset(data,0,16);
+  }else
+  {
+    Serial.write("NOT FOUND.\n");
+  }
+  command_end();
 }
 
 void list_tags_command_recv()
@@ -370,6 +584,20 @@ void list_tags_command_recv()
 
 void list_tags_command_confirm()
 {
+  eeprom_print_all_tags();
+  command_end();
+}
+
+void init_command_recv()
+{
+  Serial.write("THIS WILL RESET THE DEVICE, PLEASE CONFIRM.\n");
+  wait_confirmation();
+}
+
+void init_command_confirm()
+{
+  eeprom_reset();
+  command_end();
 }
 
 void command_ack()
@@ -379,34 +607,34 @@ void command_ack()
 
 void command_error()
 {
-  command_end();
   Serial.write("ERROR\n");
+  command_end();
 }
 
 void check_command()
 {
-  switch(command_status)
+  switch (command_status)
   {
     case READY:
-      current_command = (LLAVERO_COMMAND) which_command(serial_buffer,serial_buffer_ptr);
-      if(current_command != NO_COMMAND)
+      current_command = (LLAVERO_COMMAND) which_command(serial_buffer, serial_buffer_ptr);
+      if (current_command != NO_COMMAND)
       {
         command_ack();
         command_recv_function[current_command]();
-      }else
+      } else
       {
         command_error();
       }
       break;
     case WAITING_CONFIRMATION:
+      Serial.write("CONFIRMACION CANCELADA\n");
       command_error();
-      Serial.write("MISSED CONFIRMATION\n");
       break;
     case WAITING_ARGUMENTS:
-      if(read_argument())
+      if (read_argument())
       {
         command_arg_function[current_command]();
-      }else
+      } else
       {
         command_error();
       }
@@ -416,29 +644,30 @@ void check_command()
 
 void command_confirmation()
 {
-  if(current_command != NO_COMMAND &&
-    command_status == WAITING_CONFIRMATION)
+  if (current_command != NO_COMMAND &&
+      command_status == WAITING_CONFIRMATION)
   {
-    Serial.write("CONFIRMATION IN PROGRESS...");
+    Serial.write("CONFIRMACION EN PROGRESO...");
     delay(CONFIRMATION_TIME);
-    if(digitalRead(PUSH_PIN) == HIGH)
+    if (digitalRead(PUSH_PIN) == HIGH)
     {
       Serial.write("OK!\n");
       led_status = LED_OFF;
       command_confirm_function[current_command]();
-    }else
+    } else
     {
-      Serial.write("FAIL!\nPLEASE PUSH THE BUTTON LONGER.\n");
+      Serial.write("ERROR!\nAPRETAME MEJOR!.\n");
     }
-    
+
   }
   else
     Serial.write("TOCATE ESTA!\n");
 }
 
-void setup() 
+void setup()
 {
   rand_init();
+  eeprom_init();
   pinMode(LED_PIN, OUTPUT);
   pinMode(PUSH_PIN, INPUT);
   attachInterrupt(digitalPinToInterrupt(PUSH_PIN), push_interrupt, CHANGE);
