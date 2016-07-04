@@ -1,0 +1,79 @@
+- LLAVERO  Serial Protocol Draft 1 -
+
+Configuration and general:
+ * \n line endings
+ * 9600 default baud rate
+ * ping-pong like communication enforced
+ * maximum line lenght is 77 bytes
+ * on errors or buffer overflows the serial buffer is discarded
+ * all commands are case-sensitive, lower case is perferred.
+ * LLLAVERO answers in upper case.
+
+Communication flow:
+
+human: [command]\n 
+LLAVERO: [ACK|ERROR]\n[MESSAGE]\n
+human: [command_parameter]\n
+LLAVERO: [ACK|ERROR]\n[MESSAGE]\n
+
+LLAVERO doesn't care for input after \n is received and won't listen to commands until the answer is delivered.
+
+Commands:
+
+1 - Greeting
+command text: 
+"hola"
+possible answer:
+"HOLA HUMANO, YO SOY LLAVERO UN ROBOT DEL PASADO CON EL PROPOSITO DE ENTERRAR TUS SECRETOS EN MI PATIO DE SILICIO."
+description:
+This is a greeting/status command, use it test communication.
+
+2 - Set secret
+command text:
+"secreto"
+possible answer:
+"ESCUCHO"
+command parameter example:
+"0xafb8949e09e37437b3c8dfb12abcd18ede6cdb25849133513139fe985e8aaf09"
+description:
+Use this to set the AES encryption key, the key is saved in memory and kept until dissconected or the button is pushed for 3 seconds. 
+notes:
+LLAVERO doesn't deviate the key, please do it.
+
+3 - Store password
+command text:
+"acordate"
+possible answer:
+"DE QUE?"
+parameter 1:
+"[tag]"
+answer:
+"ESCUCHO"
+parameter 2:
+"[password]"
+description:
+Set's a password under a tag, tags can have up to 7 characters and are case-sensitive, extra characteres are discarded. Passwords can have up to 32 characters and accept any character, if more than 32 are written only the first 32 are kept.
+
+4 - Retrieve password
+command text:
+"te acordas?"
+answer:
+"DE QUE?"
+parameter:
+"[tag]"
+answer:
+"SI, CONFIRMA TU HUMANIDAD Y LO ESCRIBO."
+description:
+Get a password related to [tag]. LLAVERO will wait for physical confirmation on the push button and then write the password using the HID keyboard emulation. Remember to focus the correct place before touching LLAVERO.
+
+5 - List passwords
+command text:
+"que sabes?"
+answer:
+"CONFIRMA TU HUMANIDAD"
+*push*
+[list of tags]
+
+
+
+

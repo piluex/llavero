@@ -24,6 +24,8 @@
 #define LED_PIN 10
 #define PUSH_PIN 7
 #define PUSH_FIRE_INTERVAL 200
+#define SERIAL_BUFFER_LEN 77
+#define LINE_ENDING '\n'
 
 enum LED_MODE {
   LED_OFF,
@@ -112,7 +114,65 @@ bool decrypt_data()
   return true;
 }
 
-void setup() {
+char* error_answer = "ERROR\n";
+
+byte serial_buffer_ptr = 0;
+char serial_last_byte = 0;
+char serial_buffer[SERIAL_BUFFER_LEN+1];
+
+void check_serial()
+{
+  while(Serial.available() > 0)
+  {
+    if(serial_buffer_ptr < SERIAL_BUFFER_LEN)
+    {
+      serial_last_byte = Serial.read();
+      if(serial_last_byte == LINE_ENDING)
+      {
+        serial_buffer[serial_buffer_ptr] = 0;
+        discard_serial_data();
+        process_serial();
+        serial_buffer_ptr = 0;
+      }
+      else
+      {
+        serial_buffer[serial_buffer_ptr] = serial_last_byte;
+        serial_buffer_ptr++;
+      }
+    }else
+    {
+      serial_buffer_ptr = 0;
+      discard_serial_data();
+      Serial.write(error_answer);
+    }
+  }
+}
+
+void discard_serial_data()
+{
+  while(Serial.available())
+    Serial.read();
+}
+
+void process_serial()
+{
+  for(byte i = 0; i<serial_buffer_ptr; ++i)
+  {
+    char x = serial_buffer[i];
+    if(x >= 'a' && x <= 'z')
+    {
+      serial_buffer[i] = x - ('a'-'A');
+    }
+  }
+  //Echo in LLAVERO awesome uppercase for now
+  Serial.write(serial_buffer, serial_buffer_ptr);
+  Serial.write(LINE_ENDING);
+}
+
+
+
+void setup() 
+{
   rand_init();
   pinMode(LED_PIN, OUTPUT);
   pinMode(PUSH_PIN, INPUT);
@@ -125,6 +185,7 @@ void setup() {
 void loop()
 {
   process_led();
+  check_serial();
 }
 
 
