@@ -26,6 +26,8 @@
 #define PUSH_FIRE_INTERVAL 200
 #define SERIAL_BUFFER_LEN 77
 #define LINE_ENDING '\n'
+#define MAX_ARGUMENTS 2
+#define CONFIRMATION_TIME 100
 
 enum LED_MODE {
   LED_OFF,
@@ -82,21 +84,67 @@ void push_interrupt()
     {
       if(last_push_high < now)
       {
-        Keyboard.println("Go touch yourself.\n");
-        led_status = LED_ON;
+        command_confirmation();
       }
     }
     else
     {
       last_push_high = now + PUSH_FIRE_INTERVAL;
-      led_status = LED_OFF;
     }
   }
 }
 
 volatile bool secret_set = false;
 uint8_t secret[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-char* data[16];
+char data[16];
+
+byte n_for_hex(char x)
+{
+  if(x >= '0' && x <= '9')
+    return x-'0';
+  else if(x >= 'a' && x <= 'f')
+    return x - 'a' + 10;
+  else if(x >= 'A' && x <= 'F')
+    return x - 'A' + 10;
+  else
+    return 16;
+}
+
+void wipe_secret()
+{
+  for(int i = 0; i<32; i++)
+  {
+    secret[i] = 0;
+  }
+  secret_set = false;
+}
+
+bool set_secret(char* buff)
+{
+  if(buff[0] != '0' ||
+     buff[1] != 'x')
+  {
+    return false;
+  }
+  byte i = 2;
+  byte j = 0;
+  while(j<32)
+  {
+    byte x = n_for_hex(buff[i]);
+    byte y = n_for_hex(buff[i+1]);
+    buff[i] = 0; //Wipe key from buffer
+    buff[i+1] = 0;
+    i = i + 2;
+    if(x > 15 || y > 15)
+      return false;
+    secret[j] = (x << 4) | y;
+    j++;
+  }
+  if(buff[i] != 0) //Extra data, not good.
+    return false;
+  secret_set = true;
+  return true;
+}
 
 bool encrypt_data()
 {
@@ -130,7 +178,7 @@ void check_serial()
       if(serial_last_byte == LINE_ENDING)
       {
         serial_buffer[serial_buffer_ptr] = 0;
-        discard_serial_data();
+        discard_serial();
         process_serial();
         serial_buffer_ptr = 0;
       }
@@ -142,13 +190,13 @@ void check_serial()
     }else
     {
       serial_buffer_ptr = 0;
-      discard_serial_data();
+      discard_serial();
       Serial.write(error_answer);
     }
   }
 }
 
-void discard_serial_data()
+void discard_serial()
 {
   while(Serial.available())
     Serial.read();
@@ -156,20 +204,237 @@ void discard_serial_data()
 
 void process_serial()
 {
-  for(byte i = 0; i<serial_buffer_ptr; ++i)
-  {
-    char x = serial_buffer[i];
-    if(x >= 'a' && x <= 'z')
-    {
-      serial_buffer[i] = x - ('a'-'A');
-    }
-  }
-  //Echo in LLAVERO awesome uppercase for now
-  Serial.write(serial_buffer, serial_buffer_ptr);
-  Serial.write(LINE_ENDING);
+  check_command();
 }
 
+enum LLAVERO_COMMAND
+{
+  GREETING, // Leave as first ALWAYS
+  SET_SECRET,
+  SET_PASSWORD,
+  GET_PASSWORD,
+  LIST_TAGS,
+  NO_COMMAND // Leave as last ALWAYS
+};
+enum COMMAND_STATUS
+{
+  READY,
+  WAITING_CONFIRMATION,
+  WAITING_ARGUMENTS
+};
+char *command_txt[] = {"hola","secreto","acordate","te acordas?","que sabes?"};
+typedef void (* command_func) ();
+command_func command_recv_function[] = {greeting_command_recv, set_secret_command_recv,
+        set_password_command_recv, get_password_command_recv, list_tags_command_recv};
+command_func command_arg_function[] = {command_noop, set_secret_command_arg,
+        set_password_command_arg, get_password_command_arg, command_noop};
+command_func command_confirm_function[] = {command_noop, command_noop,
+        command_noop, get_password_command_confirm, list_tags_command_confirm};
 
+LLAVERO_COMMAND current_command = NO_COMMAND;
+COMMAND_STATUS command_status = READY;
+byte current_argument = -1;
+byte command_argument_len[MAX_ARGUMENTS];
+char command_argument[MAX_ARGUMENTS][SERIAL_BUFFER_LEN+1];
+
+bool is_command(char* cmd, char* buff, byte buff_len)
+{
+  if(buff_len <= 0)
+    return false;
+  byte i = 0;
+  while(i<=buff_len)
+  {
+    byte x = cmd[i];
+    byte y = buff[i];
+    if(x != y || (x == 0 && i != buff_len))
+    {
+      return false;
+    }
+    i++;
+  }
+  i = i -1;
+  return (i == buff_len && cmd[i] == 0);
+}
+
+byte which_command(char* buff, byte buff_len)
+{
+  for(byte i = GREETING; i < NO_COMMAND; i++)
+  {
+    if(is_command(command_txt[i], buff, buff_len))
+      return i;
+  }
+  return NO_COMMAND;
+}
+
+bool read_argument()
+{
+  if((current_argument >= 0) && (current_argument <= MAX_ARGUMENTS))
+  {
+    memcpy(command_argument[current_argument], serial_buffer, SERIAL_BUFFER_LEN);
+    command_argument[current_argument][SERIAL_BUFFER_LEN] = 0;
+    command_argument_len[current_argument] = serial_buffer_ptr;
+    return true;
+  }else
+  {
+    return false;
+  }
+}
+
+void wait_confirmation()
+{
+  led_status = LED_BLINK;
+  command_status = WAITING_CONFIRMATION;
+}
+
+void wait_argument(byte n)
+{
+  command_status = WAITING_ARGUMENTS;
+  current_argument = n;
+}
+
+void command_end()
+{
+  current_argument = -1;
+  current_command = NO_COMMAND;
+  command_status = READY;
+  led_status = LED_OFF;
+}
+
+void command_noop()
+{
+  
+}
+
+void greeting_command_recv()
+{
+  Serial.write("HOLA HUMANO,\nSOY LLAVERO, UN ROBOT DEL PASADO HECHO PARA ENTERRAR TUS SECRETOS EN MI PATIO DE SILICIO.\n");
+  command_end();
+}
+
+void set_secret_command_recv()
+{
+  Serial.write("ESCUCHO\n");
+  wait_argument(0);
+}
+
+void set_secret_command_arg()
+{
+  if(current_argument == 0)
+  {
+    if(set_secret(command_argument[current_argument]))
+    {
+      command_ack();
+      command_end();
+    }
+    else
+    {
+      command_error();
+    }
+  }else
+  {
+    command_error();
+  }
+}
+
+void set_password_command_recv()
+{
+  Serial.write("DE QUE?\n");
+  wait_argument(0);
+}
+
+void set_password_command_arg()
+{
+  
+}
+
+void get_password_command_recv()
+{
+  Serial.write("DE QUE?\n");
+  wait_argument(0);
+}
+
+void get_password_command_arg()
+{
+  
+}
+
+void get_password_command_confirm()
+{
+}
+
+void list_tags_command_recv()
+{
+  Serial.write("CONFIRMA TU HUMANIDAD\n");
+  wait_confirmation();
+}
+
+void list_tags_command_confirm()
+{
+}
+
+void command_ack()
+{
+  Serial.write("ACK\n");
+}
+
+void command_error()
+{
+  command_end();
+  Serial.write("ERROR\n");
+}
+
+void check_command()
+{
+  switch(command_status)
+  {
+    case READY:
+      current_command = (LLAVERO_COMMAND) which_command(serial_buffer,serial_buffer_ptr);
+      if(current_command != NO_COMMAND)
+      {
+        command_ack();
+        command_recv_function[current_command]();
+      }else
+      {
+        command_error();
+      }
+      break;
+    case WAITING_CONFIRMATION:
+      command_error();
+      Serial.write("MISSED CONFIRMATION\n");
+      break;
+    case WAITING_ARGUMENTS:
+      if(read_argument())
+      {
+        command_arg_function[current_command]();
+      }else
+      {
+        command_error();
+      }
+      break;
+  }
+}
+
+void command_confirmation()
+{
+  if(current_command != NO_COMMAND &&
+    command_status == WAITING_CONFIRMATION)
+  {
+    Serial.write("CONFIRMATION IN PROGRESS...");
+    delay(CONFIRMATION_TIME);
+    if(digitalRead(PUSH_PIN) == HIGH)
+    {
+      Serial.write("OK!\n");
+      led_status = LED_OFF;
+      command_confirm_function[current_command]();
+    }else
+    {
+      Serial.write("FAIL!\nPLEASE PUSH THE BUTTON LONGER.\n");
+    }
+    
+  }
+  else
+    Serial.write("TOCATE ESTA!\n");
+}
 
 void setup() 
 {
@@ -179,7 +444,6 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(PUSH_PIN), push_interrupt, CHANGE);
   Serial.begin(BAUD_RATE);
   Keyboard.begin();
-  led_status = LED_BLINK;
 }
 
 void loop()
