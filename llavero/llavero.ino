@@ -15,6 +15,13 @@
    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
    OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+   Coding guidelines: 
+   1 - Try to keep it easy for regular humans to read.
+   2 - Save EEPROM.
+   3 - Save RAM.
+   4 - Save Flash.
+   5 - Keep it simple.
 */
 
 #include "Keyboard.h"
@@ -381,7 +388,9 @@ enum COMMAND_STATUS
   WAITING_CONFIRMATION,
   WAITING_ARGUMENTS
 };
-char *command_txt[] = {"hola", "secreto", "acordate", "te acordas?", "que sabes?", "init"};
+
+char *command_txt[] = {"hi", "secret", "set", "get", "ls", "init"};
+
 typedef void (* command_func) ();
 command_func command_recv_function[] = {greeting_command_recv, set_secret_command_recv,
                                         set_password_command_recv, get_password_command_recv, list_tags_command_recv,
@@ -473,13 +482,13 @@ void command_noop()
 
 void greeting_command_recv()
 {
-  Serial.write("HOLA HUMANO,\nSOY LLAVERO, UN ROBOT DEL PASADO HECHO PARA ENTERRAR TUS SECRETOS EN MI PATIO DE SILICIO.\n");
+  Serial.write("HI HUMAN, I'M LLAVERO, A ROBOT FROM THE PAST MADE TO BURY YOUR SECRETS DEEP IN MY SILICON YARD.\n");
   command_end();
 }
 
 void set_secret_command_recv()
 {
-  Serial.write("ESCUCHO\n");
+  Serial.write("ENTER THE SECRET.\n");
   wait_argument(0);
 }
 
@@ -504,7 +513,7 @@ void set_secret_command_arg()
 
 void set_password_command_recv()
 {
-  Serial.write("DE QUE?\n");
+  Serial.write("ENTER TAG (7 CHAR MAX).\n");
   eeprom_new();
   wait_argument(0);
 }
@@ -541,7 +550,7 @@ void set_password_command_arg()
 
 void get_password_command_recv()
 {
-  Serial.write("DE QUE?\n");
+  Serial.write("ENTER TAG.\n");
   wait_argument(0);
 }
 
@@ -578,7 +587,7 @@ void get_password_command_confirm()
 
 void list_tags_command_recv()
 {
-  Serial.write("CONFIRMA TU HUMANIDAD\n");
+  Serial.write("PUSH THE BUTTON.\n");
   wait_confirmation();
 }
 
@@ -627,7 +636,7 @@ void check_command()
       }
       break;
     case WAITING_CONFIRMATION:
-      Serial.write("CONFIRMACION CANCELADA\n");
+      Serial.write("CONFIRMATION CANCELED.\n");
       command_error();
       break;
     case WAITING_ARGUMENTS:
@@ -647,7 +656,7 @@ void command_confirmation()
   if (current_command != NO_COMMAND &&
       command_status == WAITING_CONFIRMATION)
   {
-    Serial.write("CONFIRMACION EN PROGRESO...");
+    Serial.write("CONFIRMATION IN PROGRESS...");
     delay(CONFIRMATION_TIME);
     if (digitalRead(PUSH_PIN) == HIGH)
     {
@@ -656,12 +665,12 @@ void command_confirmation()
       command_confirm_function[current_command]();
     } else
     {
-      Serial.write("ERROR!\nAPRETAME MEJOR!.\n");
+      Serial.write("ERROR!\nPUSH ME CORRECTLY!.\n");
     }
 
   }
   else
-    Serial.write("TOCATE ESTA!\n");
+    Serial.write("TOUCH THIS!\n");
 }
 
 void setup()
