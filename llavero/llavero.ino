@@ -326,13 +326,13 @@ void command_noop()
 
 void greeting_command_recv()
 {
-  Serial.write("HI HUMAN, I'M LLAVERO, A ROBOT FROM THE PAST MADE TO BURY YOUR SECRETS DEEP IN MY SILICON YARD.\n");
+  Serial.print(F("HI HUMAN, I'M LLAVERO, A ROBOT FROM THE PAST MADE TO BURY YOUR SECRETS DEEP IN MY SILICON YARD."));
   command_end();
 }
 
 void set_secret_command_recv()
 {
-  Serial.write("ENTER THE SECRET.\n");
+  Serial.print(F("ENTER THE SECRET.\n"));
   wait_argument(0);
 }
 
@@ -357,7 +357,7 @@ void set_secret_command_arg()
 
 void set_password_command_recv()
 {
-  Serial.write("ENTER TAG (7 CHAR MAX).\n");
+  Serial.print(F("ENTER TAG (7 CHAR MAX).\n"));
   eeprom_new();
   wait_argument(0);
 }
@@ -370,7 +370,7 @@ void set_password_command_arg()
     if(l > 0 && l < 8)
     {
       command_ack();
-      Serial.write("ESCUCHO.\n");
+      Serial.print(F("ESCUCHO.\n"));
       wait_argument(1);
     }else
     {
@@ -415,7 +415,7 @@ void get_password_command_arg()
 
 void get_password_command_confirm()
 {
-  bool result = eeprom_load_tag(command_argument[0]);
+  bool result = eeprom_load_by_tag(command_argument[0]);
   if(result)
   {
     memcpy(data, eeprom_current_record()->data1,16);
@@ -424,14 +424,14 @@ void get_password_command_confirm()
     memset(data,0,16);
   }else
   {
-    Serial.write("NOT FOUND.\n");
+    Serial.print(F("NOT FOUND.\n"));
   }
   command_end();
 }
 
 void list_tags_command_recv()
 {
-  Serial.write("PUSH THE BUTTON.\n");
+  Serial.print(F("PUSH THE BUTTON.\n"));
   wait_confirmation();
 }
 
@@ -443,7 +443,7 @@ void list_tags_command_confirm()
 
 void init_command_recv()
 {
-  Serial.write("THIS WILL RESET THE DEVICE, PLEASE CONFIRM.\n");
+  Serial.print(F("THIS WILL RESET THE DEVICE, PLEASE CONFIRM.\n"));
   wait_confirmation();
 }
 
@@ -480,7 +480,7 @@ void check_command()
       }
       break;
     case WAITING_CONFIRMATION:
-      Serial.write("CONFIRMATION CANCELED.\n");
+      Serial.print(F("CONFIRMATION CANCELED.\n"));
       command_error();
       break;
     case WAITING_ARGUMENTS:
@@ -500,21 +500,21 @@ void command_confirmation()
   if (current_command != NO_COMMAND &&
       command_status == WAITING_CONFIRMATION)
   {
-    Serial.write("CONFIRMATION IN PROGRESS...");
+    Serial.print(F("CONFIRMATION IN PROGRESS..."));
     delay(CONFIRMATION_TIME);
     if (digitalRead(PUSH_PIN) == HIGH)
     {
-      Serial.write("OK!\n");
+      Serial.print(F("OK!\n"));
       led_status = LED_OFF;
       command_confirm_function[current_command]();
     } else
     {
-      Serial.write("ERROR!\nPUSH ME CORRECTLY!.\n");
+      Serial.print(F("ERROR!\nPUSH ME CORRECTLY!.\n"));
     }
 
   }
   else
-    Serial.write("TOUCH THIS!\n");
+    Serial.print(F("TOUCH THIS!\n"));
 }
 
 void setup()

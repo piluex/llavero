@@ -29,22 +29,23 @@
 enum EEPROM_record_flags
 {
   FREE_RECORD = 0x1,
-  EXTENDED = 0x2
+  EXTENDED = 0x2,
+  TOTP = 0x4,
 };
 
 typedef struct 
 {
   byte flags;
-  char tag[8];//Last char is always 0.
+  char tag[8];//Last char is always 0 and not saved
   byte data1[16];
-  byte data2[16];
+  byte data2[16];//Only for extended records
 }EEPROM_record;
 
 void eeprom_init();
 void eeprom_reset();
 EEPROM_record *eeprom_current_record();
 void eeprom_new();
-bool eeprom_load_tag(char* tag);
+bool eeprom_load_by_tag(char* tag);
 void eeprom_write();
 void eeprom_print_all_tags();
 

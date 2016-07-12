@@ -72,13 +72,13 @@ void eeprom_init()
       bool ack = false;
       while(ack == false)
       {
-        Serial.print("FATAL ERROR: EEPROM CRC MISSMATCH!\n");
+        Serial.print(F("FATAL ERROR: EEPROM CRC MISSMATCH!\n"));
         delay(500);
         if(Serial.available())
         {
           ack = true;
           discard_serial();
-          Serial.print("REPLACING CRC\n");
+          Serial.print(F("IF THIS IS LLAVERO IS NEW RUN THE INIT COMMAND, IF NOT BACKUP AND VERIFY EEPROM.\n"));
           eeprom_main.crc = crc;
           EEPROM.put(0, eeprom_main);
         }
@@ -106,8 +106,8 @@ void eeprom_new()
   current_address = -1;
   current_record.flags = 0;
 }
-
-bool eeprom_load_tag(char* tag)
+char eeprom_tag[7];
+bool eeprom_load_by_tag(char* tag) //TODO: Fix this for new struct
 {
   int c = 0;
   bool loaded = false;
@@ -116,7 +116,9 @@ bool eeprom_load_tag(char* tag)
   while(c<eeprom_main.count)
   {
     current_record.flags = EEPROM.read(ptr);
-    EEPROM.get(ptr+1,current_record.tag);
+    EEPROM.get(ptr+1,eeprom_tag);
+    memcpy(current_record.tag,eeprom_tag,7);
+    current_record.tag[7] = 0;
     if(strcmp(tag,current_record.tag)==0)
     {
       EEPROM.get(ptr+8, current_record.data1);
