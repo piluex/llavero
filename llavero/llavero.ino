@@ -402,6 +402,7 @@ void get_password_command_arg()
 {
   if (current_argument == 0)
   {
+  /* Missing ACK */
     int l = strlen(command_argument[current_argument]);
     if(l>0 && l <8)
       wait_confirmation();

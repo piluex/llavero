@@ -38,7 +38,7 @@ command parameter example:
 description:
 Use this to set the AES encryption key, the key is saved in memory and kept until dissconected or the button is pushed for 3 seconds. 
 notes:
-LLAVERO doesn't deviate the key, please do it.
+LLAVERO doesn't derivate the key, please do it.
 
 3 - Store password
 command text:
