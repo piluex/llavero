@@ -4,7 +4,7 @@
 ##TL;DR
 ![LLAVERO TLDR](https://cdn.rawgit.com/piluex/llavero/master/README.TLDR.svg)
 
-##I want to read!
+##So... tell me about Loom *erhg* I mean, LLAVERO
 
 LLAVERO is a simple USB keychain designed using open hardware and open source software. The goal is to store your secrets in a offline and simple piece of hardware to achieve real control over them. 
 
