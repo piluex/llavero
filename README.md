@@ -1,7 +1,7 @@
 #LLAVERO (Alpha, which means: don't use it)
 ![LLAVERO v0](https://github.com/piluex/llavero/blob/master/prototype_pictures/connected_crop.jpg?raw=true)
 
-LLAVERO is a simple USB keychain designed using open hardware and open source software. The goal is to store your secrets in a offline and simple piece of hardware to really have control over it. 
+LLAVERO is a simple USB keychain designed using open hardware and open source software. The goal is to store your secrets in a offline and simple piece of hardware to achieve real control over them. 
 
 LLAVERO uses Spark Fun Arduino Pro Micro as main board due it's form factor and USB emulation capabilities. The Pro Micro is based on the [ATmega32U4](http://www.atmel.com/devices/atmega32u4.aspx). Using ATmega32U4 USB capabilities LLAVERO is able to communicate with the target device using a serial link and directly type your secrets using a emulated HID keyboard avoiding eavesdroppers to see your secrets while typing them. LLAVERO is completely agnostic about the usage of the secrets and the target system.
 
@@ -11,3 +11,6 @@ All secrets are stored in the ATmega32U4 EEPROM memory which is rated to last up
 
 Right now LLAVERO is a concept project with support for up to 16 characters secrets. TOTP support is on it's way but it will require specific software on the target device to sync the date. For simple secrets LLAVERO can be used by wiring a terminal to the USBtty. 
 
+##Hardening notes
+
+The ATmega32U4 has a protection bit which should be set to avoid possible reprogramming/EEPROM retrieval attacks from the host device or if your LLAVERO is stolen. For further reading check page 346 on the [datasheet](http://cdn.sparkfun.com/datasheets/Dev/Arduino/Boards/ATMega32U4.pdf).
