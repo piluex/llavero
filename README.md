@@ -2,7 +2,7 @@
 ![LLAVERO v0](https://github.com/piluex/llavero/blob/master/prototype_pictures/connected_crop.jpg?raw=true)
 
 ##TL;DR
-![LLAVERO TLDR](https://raw.githubusercontent.com/piluex/llavero/master/README.TLDR.svg)
+![LLAVERO TLDR](https://cdn.rawgit.com/piluex/llavero/master/README.TLDR.svg)
 
 ##I want to read!
 
