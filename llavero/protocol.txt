@@ -22,17 +22,17 @@ Commands:
 
 1 - Greeting
 command text: 
-"hola"
+"hi"
 possible answer:
-"HOLA HUMANO, SOY LLAVERO, UN ROBOT DEL PASADO HECHO PARA ENTERRAR TUS SECRETOS EN MI PATIO DE SILICIO."
+"HI HUMAN, I'M LLAVERO, A ROBOT FROM THE PAST MADE TO BURY YOUR SECRETS DEEP IN MY SILICON YARD."
 description:
 This is a greeting/status command, use it test communication.
 
 2 - Set secret
 command text:
-"secreto"
+"secret"
 possible answer:
-"ESCUCHO"
+"ENTER THE SECRET"
 command parameter example:
 "0xafb8949e09e37437b3c8dfb12abcd18ede6cdb25849133513139fe985e8aaf09"
 description:
@@ -42,9 +42,9 @@ LLAVERO doesn't deviate the key, please do it.
 
 3 - Store password
 command text:
-"acordate"
+"set"
 possible answer:
-"DE QUE?"
+"ENTER TAG (7 CHAR MAX)."
 parameter 1:
 "[tag]"
 answer:
@@ -56,21 +56,21 @@ Set's a password under a tag, tags can have up to 7 characters and are case-sens
 
 4 - Retrieve password
 command text:
-"te acordas?"
+"get"
 answer:
-"DE QUE?"
+"ENTER TAG."
 parameter:
 "[tag]"
 answer:
-"SI, CONFIRMA TU HUMANIDAD Y LO ESCRIBO."
+"?" < I broke this, hope for a fix soon.
 description:
 Get a password related to [tag]. LLAVERO will wait for physical confirmation on the push button and then write the password using the HID keyboard emulation. Remember to focus the correct place before touching LLAVERO.
 
 5 - List passwords
 command text:
-"que sabes?"
+"ls"
 answer:
-"CONFIRMA TU HUMANIDAD"
+"PUSH THE BUTTON."
 *push*
 [list of tags]
 
