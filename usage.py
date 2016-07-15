@@ -62,6 +62,10 @@ class LLAVEROShell(cmd.Cmd):
 		waitACK(self.LL)
 		prompt = LLAVERO.readline()
 		secret = getSecret(prompt)
+		#Note to future me:
+		#The salt and the number should be picked by each user as a safety
+		#just in case the secret is evasedroped and the LLAVERO stolen, with no
+		#salt+number the secret is not that useful.
 		d_secret_pi = hashlib.pbkdf2_hmac('sha256', secret, b'sal', 314159)
 		del secret
 		LLAVERO.write('0x{0}\n'.format(binascii.hexlify(d_secret_pi)))
