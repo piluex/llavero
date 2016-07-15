@@ -14,3 +14,7 @@ Right now LLAVERO is a concept project with support for up to 16 characters secr
 ##Hardening notes
 
 The ATmega32U4 has a protection bit which should be set to avoid possible reprogramming/EEPROM retrieval attacks from the host device or if your LLAVERO is stolen. For further reading check page 346 on the [datasheet](http://cdn.sparkfun.com/datasheets/Dev/Arduino/Boards/ATMega32U4.pdf).
+
+##Building your own
+
+I promise to put the schematics and a guide as soon as I learn to use the software to create them :). LLAVERO is just a Arduino Pro Micro with one led and one push button. If you have money please buy the original from SparkFun, if it's too expensive for you just grab a clone from your local dealer or directly from aliexpress (they run for about 3 usd).
