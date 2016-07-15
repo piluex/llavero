@@ -1,4 +1,5 @@
-#LLAVERO (Alpha)
+#LLAVERO (Alpha, which means: don't use it)
+![LLAVERO v0](https://github.com/piluex/llavero/blob/master/prototype_pictures/connected.jpg?raw=true)
 
 LLAVERO is a simple USB keychain designed using open hardware and open source software. The goal is to store your secrets in a offline and simple piece of hardware to really have control over it. 
 
