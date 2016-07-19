@@ -87,7 +87,7 @@ class LLAVEROShell(cmd.Cmd):
 		d_secret_pi = hashlib.pbkdf2_hmac('sha256', secret, b'sal', 314159)
 		del secret
 		LLAVERO.write('0x{0}\n'.format(binascii.hexlify(d_secret_pi)))
-		print d_secret_pi#debug
+		print 'DEBUG SECRET: 0x{0}\n'.format(binascii.hexlify(d_secret_pi))#debug
 		del d_secret_pi
 		waitACK(LLAVERO)
 		print 'Secret sent.'

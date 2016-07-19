@@ -425,6 +425,7 @@ void get_password_command_confirm()
     memcpy(data, eeprom_current_record()->data1,16);
     decrypt_data();
     Keyboard.print(data);
+    Keyboard.print('\n');
     memset(data,0,16);
   }else
   {

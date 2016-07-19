@@ -66,7 +66,7 @@ void eeprom_init()
     eeprom_reset();
   }else
   {
-    unsigned long crc = eeprom_crc(sizeof(eeprom_main.crc));
+    unsigned long crc = eeprom_crc(sizeof(eeprom_main));
     if(eeprom_main.crc != crc)
     {
       bool ack = false;
@@ -92,7 +92,7 @@ void eeprom_reset()
   eeprom_main.count = 0;
   eeprom_main.next = sizeof(eeprom_main);
   EEPROM.put(0,eeprom_main);
-  eeprom_main.crc = eeprom_crc(sizeof(eeprom_main.crc));
+  eeprom_main.crc = eeprom_crc(sizeof(eeprom_main));
   EEPROM.put(0,eeprom_main);
 }
 
@@ -130,12 +130,12 @@ bool eeprom_load_by_tag(char* tag) //TODO: Fix this for new struct
       return true;
     }
     c++;
-    if(current_record.flags & EXTENDED)
-    {
-      ptr = ptr + sizeof(current_record);
-    }else{
-      ptr = ptr + sizeof(current_record)-16;
-    }
+   // if(current_record.flags & EXTENDED)
+   // {
+      ptr = ptr + sizeof(current_record) -1;
+   // }else{
+   //   ptr = ptr + sizeof(current_record)-16;
+   // }
   }
   return false;
 }
@@ -154,7 +154,7 @@ void eeprom_write()
   EEPROM.put(current_address+1, current_record.tag);
   EEPROM.put(current_address+1+7, current_record.data1);
   EEPROM.put(current_address+1+7+16, current_record.data2);
-  eeprom_main.crc = eeprom_crc(sizeof(eeprom_main.crc));
+  eeprom_main.crc = eeprom_crc(sizeof(eeprom_main));
   EEPROM.put(0, eeprom_main);
 }
 
