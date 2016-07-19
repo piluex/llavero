@@ -122,10 +122,10 @@ bool eeprom_load_by_tag(char* tag) //TODO: Fix this for new struct
     if(strcmp(tag,current_record.tag)==0)
     {
       EEPROM.get(ptr+8, current_record.data1);
-      if(current_record.flags & EXTENDED)
-      {
+     // if(current_record.flags & EXTENDED)
+    //  {
         EEPROM.get(ptr+8+16, current_record.data2);
-      }
+     // }
       current_address = ptr;
       return true;
     }
@@ -145,12 +145,15 @@ void eeprom_write()
   if(current_address < 0)
   {
     current_address = eeprom_main.next;
-    eeprom_main.next = eeprom_main.next + sizeof(current_record);
-    if((current_record.flags & EXTENDED) == 0)
-      eeprom_main.next = eeprom_main.next - 16;
+    eeprom_main.next = eeprom_main.next + sizeof(current_record)-1;
+   // if((current_record.flags & EXTENDED) == 0)
+   //   eeprom_main.next = eeprom_main.next - 16;
     eeprom_main.count = eeprom_main.count + 1;
   }
-  EEPROM.put(current_address, current_record);
+  EEPROM.put(current_address, current_record.flags);
+  EEPROM.put(current_address+1, current_record.tag);
+  EEPROM.put(current_address+1+7, current_record.data1);
+  EEPROM.put(current_address+1+7+16, current_record.data2);
   eeprom_main.crc = eeprom_crc(sizeof(eeprom_main.crc));
   EEPROM.put(0, eeprom_main);
 }
@@ -166,12 +169,12 @@ void eeprom_print_all_tags()
     Serial.write(current_record.tag);
     Serial.write('\n');
     c++;
-    if(current_record.flags & EXTENDED)
-    {
-      ptr = ptr + sizeof(current_record);
-    }else{
-      ptr = ptr + sizeof(current_record)-16;
-    }
+ //   if(current_record.flags & EXTENDED)
+ //   {
+      ptr = ptr + sizeof(current_record)-1;
+  //  }else{
+  //    ptr = ptr + sizeof(current_record)-16;
+  //  }
   }
 }
 

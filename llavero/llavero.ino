@@ -370,7 +370,7 @@ void set_password_command_arg()
     if(l > 0 && l < 8)
     {
       command_ack();
-      Serial.print(F("ESCUCHO.\n"));
+      Serial.print(F("SEND THE SECRET.\n"));
       wait_argument(1);
     }else
     {
@@ -394,7 +394,7 @@ void set_password_command_arg()
 
 void get_password_command_recv()
 {
-  Serial.write("ENTER TAG.\n");
+  Serial.print(F("ENTER TAG.\n"));
   wait_argument(0);
 }
 
@@ -402,10 +402,13 @@ void get_password_command_arg()
 {
   if (current_argument == 0)
   {
-  /* Missing ACK */
+    command_ack();
     int l = strlen(command_argument[current_argument]);
     if(l>0 && l <8)
+    {
+      Serial.print(F("FOCUS ON PROMPT AND PUSH THE BUTTON.\n"));
       wait_confirmation();
+    }
     else
       command_error();
   } else
@@ -496,26 +499,29 @@ void check_command()
   }
 }
 
+void default_action()
+{
+  Serial.print(F("TOUCH THIS!\n"));
+}
+
 void command_confirmation()
 {
   if (current_command != NO_COMMAND &&
       command_status == WAITING_CONFIRMATION)
   {
-    Serial.print(F("CONFIRMATION IN PROGRESS..."));
     delay(CONFIRMATION_TIME);
     if (digitalRead(PUSH_PIN) == HIGH)
     {
-      Serial.print(F("OK!\n"));
       led_status = LED_OFF;
       command_confirm_function[current_command]();
     } else
     {
-      Serial.print(F("ERROR!\nPUSH ME CORRECTLY!.\n"));
+      Serial.print(F("ERROR: PUSH ME CORRECTLY!.\n"));
     }
 
   }
   else
-    Serial.print(F("TOUCH THIS!\n"));
+    default_action();
 }
 
 void setup()

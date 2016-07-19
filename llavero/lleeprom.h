@@ -29,8 +29,8 @@
 enum EEPROM_record_flags
 {
   FREE_RECORD = 0x1,
-  EXTENDED = 0x2,
-  TOTP = 0x4,
+  EXTENDED = 0x2, //TODO: to save EEPROM use single records for small secrets
+  TOTP_RECORD = 0x4,
 };
 
 typedef struct 
@@ -38,7 +38,7 @@ typedef struct
   byte flags;
   char tag[8];//Last char is always 0 and not saved
   byte data1[16];
-  byte data2[16];//Only for extended records
+  byte data2[16];//TODO: Only for extended records
 }EEPROM_record;
 
 void eeprom_init();

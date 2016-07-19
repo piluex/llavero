@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import hashlib
 import binascii
 import serial
@@ -6,7 +7,10 @@ import getpass
 import cmd 
 
 def waitACK(ll):
-	ack = ll.readline()
+	time.sleep(0.1)
+	ack = None
+	while ack is None:
+		ack = ll.readline()
 	if ack != 'ACK\n':
 		print 'Expected ACK, got: {0}'.format(ack)
 		exit(1)
@@ -19,6 +23,10 @@ def getSecret(prompt):
 		secret_b = getpass.getpass('Confirm:\n')
 		good = secret_a == secret_b
 	return secret_a
+
+def resetInput(ll):
+	time.sleep(0.1)
+	ll.reset_input_buffer()
 
 class LLAVEROShell(cmd.Cmd):
 	intro = 'Hello world. Type help or ? to list commands.\n'
@@ -33,24 +41,34 @@ class LLAVEROShell(cmd.Cmd):
 		'set [tag] -> secret prompt. [tag] is 7 char max.'
 		self.LL.write('set\n')
 		waitACK(self.LL)
+		self.LL.readline()
 		self.LL.write('{0}\n'.format(arg))
 		waitACK(self.LL)
+		print self.LL.readline()
 		prompt = self.LL.readline()
 		secret = getSecret(prompt)
 		self.LL.write('{0}\n'.format(secret))
+		#I know, del is no good, for memory control python is no good.
 		del secret
 		waitACK(self.LL)
 	def do_get(self, arg):
 		'get [tag]. [tag] is 7 char max.'
 		self.LL.write('get\n')
 		waitACK(self.LL)
+		self.LL.readline()#ENTER TAG
 		self.LL.write('{0}\n'.format(arg))
+		waitACK(self.LL)
 		print self.LL.readline()
 	def do_ls(self, arg):
 		'Lists all tags.'
 		self.LL.write('ls\n')
 		waitACK(self.LL)
 		print self.LL.readline()
+		time.sleep(1)
+		result = None
+		while result is None or len(result) < 1:
+			result = self.LL.read(255)
+		print result
 	def do_init(self, arg):
 		'Factory reset, push confirmation.'
 		self.LL.write('init\n')
@@ -69,17 +87,20 @@ class LLAVEROShell(cmd.Cmd):
 		d_secret_pi = hashlib.pbkdf2_hmac('sha256', secret, b'sal', 314159)
 		del secret
 		LLAVERO.write('0x{0}\n'.format(binascii.hexlify(d_secret_pi)))
+		print d_secret_pi#debug
 		del d_secret_pi
 		waitACK(LLAVERO)
 		print 'Secret sent.'
-
+	def precmd(self, line):
+		resetInput(self.LL)
+		return line
 
 if __name__ == '__main__':
 	print "Contacting LLAVERO..."
 	#port = '/dev/ttyUSB0'#linux
 	port = '/dev/cu.usbmodemHIDP1'#osx
-	with serial.Serial(port, 9600, timeout=2) as LLAVERO:
-		time.sleep(1)
+	with serial.Serial(port, 9600, timeout=1) as LLAVERO:
+		time.sleep(2)
 		LLAVERO.write('hi\n');
 		waitACK(LLAVERO)
 		print LLAVERO.readline()
