@@ -20,7 +20,7 @@
    1 - Try to keep it easy for regular humans to read.
    2 - Save EEPROM.
    3 - Save RAM.
-   4 - Save Flash.
+   4 - Save Flash. < Quick note will optimize protocol strings when needed.
    5 - Keep it simple.
 */
 
@@ -224,6 +224,8 @@ enum LLAVERO_COMMAND
   GET_PASSWORD,
   LIST_TAGS,
   INIT,
+  TIME,
+  SET_TOTP,
   NO_COMMAND // Leave as last ALWAYS
 };
 enum COMMAND_STATUS
@@ -233,20 +235,20 @@ enum COMMAND_STATUS
   WAITING_ARGUMENTS
 };
 
-char *command_txt[] = {"hi", "secret", "set", "get", "ls", "init"};
+char *command_txt[] = {"hi", "secret", "set", "get", "ls", "init", "time", "sett"};
 
 typedef void (* command_func) ();
 command_func command_recv_function[] = {greeting_command_recv, set_secret_command_recv,
                                         set_password_command_recv, get_password_command_recv, list_tags_command_recv,
-                                        init_command_recv
+                                        init_command_recv, time_command_recv, set_totp_command_recv
                                        };
 command_func command_arg_function[] = {command_noop, set_secret_command_arg,
                                        set_password_command_arg, get_password_command_arg, command_noop,
-                                       command_noop
+                                       command_noop, time_command_arg, set_totp_command_arg
                                       };
 command_func command_confirm_function[] = {command_noop, command_noop,
                                            command_noop, get_password_command_confirm, list_tags_command_confirm,
-                                           init_command_confirm
+                                           init_command_confirm, command_noop, command_noop
                                           };
 
 LLAVERO_COMMAND current_command = NO_COMMAND;
@@ -366,7 +368,7 @@ void set_password_command_arg()
 {
   if (current_argument == 0)
   {
-    int l = strlen(command_argument[0]);
+    int l = command_argument_len[0];
     if(l > 0 && l < 8)
     {
       command_ack();
@@ -378,14 +380,30 @@ void set_password_command_arg()
     }
   } else if (current_argument == 1)
   {
-    command_ack();
-    memcpy(data, command_argument[1],16);
-    encrypt_data();
-    eeprom_current_record()->flags = 0;
-    memcpy(eeprom_current_record()->tag, command_argument[0],7);
-    memcpy(eeprom_current_record()->data1,data,16);
-    eeprom_write();
-    command_end();
+    if(command_argument_len[1] > 32)
+    {
+      command_error();
+    }
+    else
+    {
+      command_ack();
+      eeprom_current_record()->flags = 0;
+      memcpy(data, command_argument[1],16);
+      encrypt_data();
+      memcpy(eeprom_current_record()->data1,data,16);
+      
+      if(command_argument_len[1] > 16)
+      {
+        eeprom_current_record()->flags = EXTENDED;
+        memcpy(data, (&command_argument[1])+16,16);
+        encrypt_data();
+        memcpy(eeprom_current_record()->data2,data,16);
+      } 
+      
+      memcpy(eeprom_current_record()->tag, command_argument[0],7);
+      eeprom_write();
+      command_end();
+    }
   } else
   {
     command_error();
@@ -457,6 +475,27 @@ void init_command_confirm()
   eeprom_reset();
   command_end();
 }
+
+void time_command_recv()
+{
+  Serial.print(F("I'D LOVE TO KNOW... WHAT TIME IS IT?\n"));
+  wait_argument(0);
+}
+
+void time_command_arg()
+{
+  
+}
+
+void set_totp_command_recv()
+{
+}
+
+void set_totp_command_arg()
+{
+  
+}
+
 
 void command_ack()
 {
