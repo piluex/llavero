@@ -129,29 +129,35 @@ void wipe_secret()
 
 bool set_secret(char* buff)
 {
-  if (buff[0] != '0' ||
-      buff[1] != 'x')
+  secret_set = ascii_hex_to_bin(buff, secret, 32);
+  return secret_set;
+}
+
+bool ascii_hex_to_bin(char* ascii, byte* dest, byte expected_size)
+{
+  if (ascii[0] != '0' ||
+      ascii[1] != 'x')
   {
     return false;
   }
   byte i = 2;
   byte j = 0;
-  while (j < 32)
+  while (j < expected_size)
   {
-    byte x = n_for_hex(buff[i]);
-    byte y = n_for_hex(buff[i + 1]);
-    buff[i] = 0; //Wipe key from buffer
-    buff[i + 1] = 0;
+    byte x = n_for_hex(ascii[i]);
+    byte y = n_for_hex(ascii[i + 1]);
+    ascii[i] = 0; //Wipe key from buffer
+    ascii[i + 1] = 0;
     i = i + 2;
     if (x > 15 || y > 15)
       return false;
-    secret[j] = (x << 4) | y;
+    dest[j] = (x << 4) | y;
     j++;
   }
-  if (buff[i] != 0) //Extra data, not good.
+  if (ascii[i] != 0) //Extra data, not good.
     return false;
-  secret_set = true;
-  return true;
+  else
+    return true;
 }
 
 bool encrypt_data()
@@ -395,7 +401,7 @@ void set_password_command_arg()
       if(command_argument_len[1] > 16)
       {
         eeprom_current_record()->flags = EXTENDED;
-        memcpy(data, (&command_argument[1])+16,16);
+        memcpy(data, &command_argument[15],16);
         encrypt_data();
         memcpy(eeprom_current_record()->data2,data,16);
       } 
@@ -484,16 +490,40 @@ void time_command_recv()
 
 void time_command_arg()
 {
+  command_ack();
   
+  command_end();
 }
 
 void set_totp_command_recv()
 {
+  Serial.print(F("ENTER TAG.\n"));
+  wait_argument(0);
 }
-
+byte totp_secret[20];
 void set_totp_command_arg()
 {
-  
+  if (current_argument == 0)
+  {
+    command_ack();
+    Serial.print(F("NOW THE SECRET.\n"));
+    wait_argument(1);
+  }else
+  {
+    command_ack();
+    eeprom_current_record()->flags = TOTP_RECORD|EXTENDED;
+    ascii_hex_to_bin(command_argument[1],totp_secret, 20);
+    memcpy(data, totp_secret,16);
+    encrypt_data();
+    memcpy(eeprom_current_record()->data1,data,16);
+    memcpy(data, &totp_secret[15],4);
+    encrypt_data();
+    memcpy(eeprom_current_record()->data2,data,16);
+    
+    memcpy(eeprom_current_record()->tag, command_argument[0], 7);
+    eeprom_write();
+    command_end();
+  }
 }
 
 

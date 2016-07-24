@@ -4,7 +4,8 @@ import binascii
 import serial
 import time
 import getpass
-import cmd 
+import cmd
+import base64
 
 def waitACK(ll):
 	time.sleep(0.1)
@@ -78,7 +79,7 @@ class LLAVEROShell(cmd.Cmd):
 		'Set the AES key, this scripts derivates a plain text for you.'
 		self.LL.write('secret\n')
 		waitACK(self.LL)
-		prompt = LLAVERO.readline()
+		prompt = self.LL.readline()
 		secret = getSecret(prompt)
 		#Note to future me:
 		#The salt and the number should be picked by each user as a safety
@@ -86,10 +87,26 @@ class LLAVEROShell(cmd.Cmd):
 		#salt+number the secret is not that useful.
 		d_secret_pi = hashlib.pbkdf2_hmac('sha256', secret, b'sal', 314159)
 		del secret
-		LLAVERO.write('0x{0}\n'.format(binascii.hexlify(d_secret_pi)))
+		self.LL.write('0x{0}\n'.format(binascii.hexlify(d_secret_pi)))
 		print 'DEBUG SECRET: 0x{0}\n'.format(binascii.hexlify(d_secret_pi))#debug
 		del d_secret_pi
-		waitACK(LLAVERO)
+		waitACK(self.LL)
+		print 'Secret sent.'
+	def do_sett(self, tag):
+		'sett [tag]. Sets [tag] for totp, the secret is expected in base32 google format.'
+		self.LL.write('sett\n')
+		waitACK(self.LL)
+		self.LL.readline()
+		self.LL.write('{0}\n'.format(tag))
+		prompt = self.LL.readline()
+		print prompt
+		arg = getSecret(prompt)
+		parsed = arg.replace(' ', '').upper()
+		bin = base64.b32decode(parsed)
+		nice_hex = '0x{0}\n'.format(binascii.hexlify(bin))
+		print 'Debug: ' + nice_hex
+		self.LL.write(nice_hex)
+		waitACK(self.LL)
 		print 'Secret sent.'
 	def precmd(self, line):
 		resetInput(self.LL)
