@@ -48,6 +48,7 @@ enum LED_MODE {
 
 volatile LED_MODE led_status = LED_OFF;
 swRTC rtc;
+byte totp_secret[20];
 
 void process_led()
 {
@@ -458,9 +459,24 @@ void get_password_command_confirm()
   {
     memcpy(data, eeprom_current_record()->data1,16);
     decrypt_data();
-    Keyboard.print(data);
-    Keyboard.print('\n');
-    memset(data,0,16);
+    if((eeprom_current_record()->flags&TOTP_RECORD) == TOTP_RECORD)
+    {
+      memcpy(totp_secret, data, 16);
+      memcpy(data, eeprom_current_record()->data2,16);
+      decrypt_data();
+      memcpy(&totp_secret[16], data, 4);
+      TOTP totp = TOTP(totp_secret, 20,30);
+      long GMT = rtc.getTimestamp();
+      char* code = totp.getCode(GMT);
+      Keyboard.print(code);
+      Keyboard.print('\n');
+      memset(totp_secret,0,20);
+    }else
+    {
+      Keyboard.print(data);
+      Keyboard.print('\n');
+      memset(data,0,16);
+    }
   }else
   {
     Serial.print(F("NOT FOUND.\n"));
@@ -535,7 +551,7 @@ void set_totp_command_recv()
   Serial.print(F("ENTER TAG.\n"));
   wait_argument(0);
 }
-byte totp_secret[20];
+
 void set_totp_command_arg()
 {
   if (current_argument == 0)
@@ -551,12 +567,17 @@ void set_totp_command_arg()
     memcpy(data, totp_secret,16);
     encrypt_data();
     memcpy(eeprom_current_record()->data1,data,16);
-    memcpy(data, &totp_secret[15],4);
+    memcpy(data, &totp_secret[16],4);
     encrypt_data();
     memcpy(eeprom_current_record()->data2,data,16);
     
     memcpy(eeprom_current_record()->tag, command_argument[0], 7);
     eeprom_write();
+    TOTP totp = TOTP(totp_secret, 20,30);
+      long GMT = rtc.getTimestamp();
+      char* code = totp.getCode(GMT);
+      Keyboard.print(code);
+      Keyboard.print('\n');
     command_end();
   }
 }

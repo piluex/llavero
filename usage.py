@@ -110,10 +110,10 @@ class LLAVEROShell(cmd.Cmd):
 		'sett [tag]. Sets [tag] for totp, the secret is expected in base32 google format.'
 		self.LL.write('sett\n')
 		waitACK(self.LL)
-		self.LL.readline()
+		print self.LL.readline()
 		self.LL.write('{0}\n'.format(tag))
+		waitACK(self.LL)
 		prompt = self.LL.readline()
-		print prompt
 		arg = getSecret(prompt)
 		parsed = arg.replace(' ', '').upper()
 		bin = base64.b32decode(parsed)
