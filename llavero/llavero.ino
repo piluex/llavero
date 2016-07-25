@@ -412,7 +412,7 @@ void set_password_command_arg()
       if(command_argument_len[1] > 16)
       {
         eeprom_current_record()->flags = EXTENDED;
-        memcpy(data, &command_argument[15],16);
+        memcpy(data, &command_argument[1][16],16);
         encrypt_data();
         memcpy(eeprom_current_record()->data2,data,16);
       } 
@@ -570,7 +570,6 @@ void set_totp_command_arg()
     memcpy(data, &totp_secret[16],4);
     encrypt_data();
     memcpy(eeprom_current_record()->data2,data,16);
-    
     memcpy(eeprom_current_record()->tag, command_argument[0], 7);
     eeprom_write();
     command_end();
