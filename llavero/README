@@ -4,3 +4,7 @@ And:
 https://github.com/lucadentella/ArduinoLib_TOTP
 Oh, and:
 https://github.com/leomil72/swRTC
+But actually use:
+https://github.com/piluex/swRTC 
+Until I get a pull request for ATMEGA32u4 support.
+
