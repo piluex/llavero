@@ -573,11 +573,6 @@ void set_totp_command_arg()
     
     memcpy(eeprom_current_record()->tag, command_argument[0], 7);
     eeprom_write();
-    TOTP totp = TOTP(totp_secret, 20,30);
-      long GMT = rtc.getTimestamp();
-      char* code = totp.getCode(GMT);
-      Keyboard.print(code);
-      Keyboard.print('\n');
     command_end();
   }
 }
