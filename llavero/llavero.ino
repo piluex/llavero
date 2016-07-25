@@ -26,6 +26,8 @@
 
 #include "Keyboard.h"
 #include "AESLib.h"
+#include "swRTC/swRTC.h"
+#include "TOTP.h"
 #include "lleeprom.h"
 
 #define BAUD_RATE 9600
@@ -45,6 +47,7 @@ enum LED_MODE {
 #define LED_BLINK_INTERVAL 500
 
 volatile LED_MODE led_status = LED_OFF;
+swRTC rtc;
 
 void process_led()
 {
@@ -127,13 +130,7 @@ void wipe_secret()
   secret_set = false;
 }
 
-bool set_secret(char* buff)
-{
-  secret_set = ascii_hex_to_bin(buff, secret, 32);
-  return secret_set;
-}
-
-bool ascii_hex_to_bin(char* ascii, byte* dest, byte expected_size)
+bool ascii_hex_to_bin(char* ascii, byte* dest, byte expected_size, bool reverse = false)
 {
   if (ascii[0] != '0' ||
       ascii[1] != 'x')
@@ -142,7 +139,9 @@ bool ascii_hex_to_bin(char* ascii, byte* dest, byte expected_size)
   }
   byte i = 2;
   byte j = 0;
-  while (j < expected_size)
+  if(reverse == true)
+    j = (expected_size-1);
+  while ((reverse == false && j < expected_size) || (reverse == true && j >= 0))
   {
     byte x = n_for_hex(ascii[i]);
     byte y = n_for_hex(ascii[i + 1]);
@@ -152,12 +151,22 @@ bool ascii_hex_to_bin(char* ascii, byte* dest, byte expected_size)
     if (x > 15 || y > 15)
       return false;
     dest[j] = (x << 4) | y;
-    j++;
+    if(reverse == true)
+      j--;
+    else
+      j++;
+    
   }
   if (ascii[i] != 0) //Extra data, not good.
     return false;
   else
     return true;
+}
+
+bool set_secret(char* buff)
+{
+  secret_set = ascii_hex_to_bin(buff, secret, 32);
+  return secret_set;
 }
 
 bool encrypt_data()
@@ -335,6 +344,7 @@ void command_noop()
 void greeting_command_recv()
 {
   Serial.print(F("HI HUMAN, I'M LLAVERO, A ROBOT FROM THE PAST MADE TO BURY YOUR SECRETS DEEP IN MY SILICON YARD."));
+  print_time();
   command_end();
 }
 
@@ -488,10 +498,35 @@ void time_command_recv()
   wait_argument(0);
 }
 
+unsigned long timestamp;
+void print_time()
+{
+  //rtc
+  Serial.print(rtc.getYear());
+  Serial.print("-");
+  Serial.print(rtc.getMonth());
+  Serial.print("-");
+  Serial.print(rtc.getDay());
+  Serial.print(" ");
+  Serial.print(rtc.getHours());
+  Serial.print(":");
+  Serial.print(rtc.getMinutes());
+  Serial.print(":");
+  Serial.print(rtc.getSeconds());
+  Serial.print("\n");
+}
+
 void time_command_arg()
 {
   command_ack();
-  
+  ascii_hex_to_bin(command_argument[0],(byte*)&timestamp, 4, true);  
+  if(rtc.getYear() < 1970)
+  {
+    rtc.stopRTC();
+    rtc.setClockWithTimestamp(timestamp);
+    rtc.startRTC();
+  }  
+  print_time();
   command_end();
 }
 
@@ -526,6 +561,10 @@ void set_totp_command_arg()
   }
 }
 
+void print_totp()
+{
+  
+}
 
 void command_ack()
 {

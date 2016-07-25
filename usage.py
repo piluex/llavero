@@ -3,6 +3,7 @@ import hashlib
 import binascii
 import serial
 import time
+import calendar
 import getpass
 import cmd
 import base64
@@ -37,7 +38,11 @@ class LLAVEROShell(cmd.Cmd):
 	def __init__(self, ll = None):
 		cmd.Cmd.__init__(self)
 		self.LL = ll
-
+	def do_hi(self, arg):
+		'Say hi.'
+		self.LL.write('hi\n')
+		waitACK(self.LL)
+		print self.LL.readline()
 	def do_set(self, arg):
 		'set [tag] -> secret prompt. [tag] is 7 char max.'
 		self.LL.write('set\n')
@@ -92,6 +97,15 @@ class LLAVEROShell(cmd.Cmd):
 		del d_secret_pi
 		waitACK(self.LL)
 		print 'Secret sent.'
+	def do_time(self, arg):
+		'Tells what time is it to LLAVERO. LLAVERO needs to know that for TOTP codes.'
+		self.LL.write('time\n')
+		waitACK(self.LL)
+		self.LL.readline()
+		self.LL.write(hex(calendar.timegm(time.gmtime()))+"\n")
+		waitACK(self.LL)
+		time.sleep(0.1)
+		print self.LL.readline()
 	def do_sett(self, tag):
 		'sett [tag]. Sets [tag] for totp, the secret is expected in base32 google format.'
 		self.LL.write('sett\n')
