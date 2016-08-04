@@ -120,8 +120,10 @@ class LLAVEROShell(cmd.Cmd):
 		nice_hex = '0x{0}\n'.format(binascii.hexlify(bin))
 		print 'Debug: ' + nice_hex
 		self.LL.write(nice_hex)
+
 		waitACK(self.LL)
 		print 'Secret sent.'
+		print self.LL.readline()
 	def precmd(self, line):
 		resetInput(self.LL)
 		return line
