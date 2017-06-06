@@ -1,10 +1,10 @@
-#LLAVERO (Alpha, which means: don't use it)
+#LLAVERO (Alpha 2, which means: don't use it, again)
 ![LLAVERO v0](https://github.com/piluex/llavero/blob/master/prototype_pictures/connected_crop.jpg?raw=true)
 
 ##TL;DR
 ![LLAVERO TLDR](https://cdn.rawgit.com/piluex/llavero/master/README.TLDR.svg)
 
-[Watch first prototype demo (explicit audio)](https://youtu.be/FhvdqgQPzHE)
+New demo incomming with TOTP support!
 
 ##So... tell me about Loom *erhg* I mean, LLAVERO
 
@@ -16,7 +16,7 @@ To avoid unintended usage or retrieval of secrets LLAVERO encrypts all secrets u
 
 All secrets are stored in the ATmega32U4 EEPROM memory which is rated to last up to 100k read/write cycles and up to 20 years at 80C. LLAVERO does a CRC checksum to the EEPROM memory and warns you if your EEPROM is failing. In addition all write operations are verified. 
 
-Right now LLAVERO is a concept project with support for up to 16 characters secrets. TOTP support is on it's way but it will require specific software on the target device to sync the date. For simple secrets LLAVERO can be used by wiring a terminal to the USBtty. 
+Right now LLAVERO is a concept project with support for up to 32 characters secrets and TOTP (Google Authenticator) secrets up to 31 bytes long (Google uses 20 byte shared secrets and most services just 10 bytes). 
 
 ##Hardening notes
 
