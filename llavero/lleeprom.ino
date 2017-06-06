@@ -146,7 +146,7 @@ void eeprom_write()
   if(current_address < 0)
   {
     current_address = eeprom_main.next;
-    eeprom_main.next = eeprom_main.next + sizeof(current_record)-1-1;
+    eeprom_main.next = eeprom_main.next + sizeof(EEPROM_stored_record);
    // if((current_record.flags & EXTENDED) == 0)
    //   eeprom_main.next = eeprom_main.next - 16;
     eeprom_main.count = eeprom_main.count + 1;

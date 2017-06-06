@@ -28,6 +28,7 @@
 #include "AESLib.h"
 #include "swRTC/swRTC.h"
 #include "TOTP.h"
+#include "llencrypt.h"
 #include "lleeprom.h"
 
 #define BAUD_RATE 9600
@@ -490,7 +491,7 @@ void print_totp(EEPROM_ram_record* record)
   Keyboard.print('\n');
   memset(totp_secret,0,20);
 }
-
+//TODO HERE USE THIS
 bool access_record_by_tag(char* tag, byte tag_len)
 {
   if(tag_len > 7)
@@ -524,11 +525,21 @@ void get_password_cmd_confirm()
     decrypt_data();
     if((eeprom_current_record()->flags&TOTP_RECORD) == TOTP_RECORD)
     {
-      memcpy(totp_secret, data, 16);
-      memcpy(data, eeprom_current_record()->data2,16);
-      decrypt_data();
-      memcpy(&totp_secret[16], data, 4);
-      TOTP totp = TOTP(totp_secret, 20,30);
+      byte len = data[0];
+      if(len > 31)
+      {
+        cmd_error();
+        return;
+      }
+      memcpy(totp_secret, &data[1], 15);
+      if(len > 15)
+      {
+        memcpy(data, eeprom_current_record()->data2,16);
+        decrypt_data();
+        memcpy(&totp_secret[15], data, len-15);
+      }
+      totp_secret[len] = 0;
+      TOTP totp = TOTP(totp_secret, len,30);
       long GMT = rtc.getTimestamp();
       char* code = totp.getCode(GMT);
       Keyboard.print(code);
@@ -624,24 +635,39 @@ void set_totp_cmd_arg()
     wait_argument(1);
   }else
   {
-    cmd_ack();
-    eeprom_current_record()->flags = TOTP_RECORD|EXTENDED;
-    ascii_hex_to_bin(cmd_arg[1],totp_secret, 20);
-    memcpy(data, totp_secret,16);
-    encrypt_data();
-    memcpy(eeprom_current_record()->data1,data,16);
-    memcpy(data, &totp_secret[16],4);
-    encrypt_data();
-    memcpy(eeprom_current_record()->data2,data,16);
-    memcpy(eeprom_current_record()->tag, cmd_arg[0], 7);
-    eeprom_write();
-    cmd_end();
+    if(cmd_arg_len[1]%2 != 0 || cmd_arg_len[1] > 64)
+      cmd_error();
+    else
+    {
+      eeprom_new();
+      cmd_ack();
+      eeprom_current_record()->flags = TOTP_RECORD|EXTENDED;
+      byte totp_key_len = (cmd_arg_len[1]-2)/2;      
+      ascii_hex_to_bin(cmd_arg[1], totp_secret, totp_key_len);
+      data[0] = totp_key_len;
+      memcpy(&data[1], totp_secret,15);
+      Serial.print("Key len: ");
+      Serial.print((int)totp_key_len);
+      Serial.print(" ");
+      for(int j = 0; j<totp_key_len;++j)
+      {
+        Serial.print(totp_secret[j],HEX);
+        Serial.print(" ");
+      }
+      Serial.print("\n");
+      encrypt_data();
+      memcpy(eeprom_current_record()->data1,data,16);
+      if(totp_key_len > 15)
+      {
+        memcpy(data, &totp_secret[15],(totp_key_len-15));
+        encrypt_data();
+        memcpy(eeprom_current_record()->data2,data,16);
+      }
+      memcpy(eeprom_current_record()->tag, cmd_arg[0], 7);
+      eeprom_write();
+      cmd_end();
+    }
   }
-}
-
-void print_totp()
-{
-  
 }
 
 void cmd_ack()
